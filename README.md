@@ -27,3 +27,9 @@ Para logar no sistema, use o usuário "gerente" e a senha "123".
 - Hibernate
 - FlyWay
 
+# Team-404-SQUAD
+
+- Link do documento Plano de Teste <br>
+https://docs.google.com/document/d/1KcJ-EBOd7ZRk1mPJ03Hrh8wfrlku0R9E/edit?usp=sharing&ouid=108383658840759933254&rtpof=true&sd=true
+- link do documento geral do Trabalho <br>
+https://docs.google.com/document/d/1jNFx03L_HjozPYseAo9HGxzXp3AV4yMwRVnor9Q36yA/edit?usp=sharing
