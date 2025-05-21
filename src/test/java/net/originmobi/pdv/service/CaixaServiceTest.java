@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import java.util.Optional;
 
@@ -27,7 +28,6 @@ public class CaixaServiceTest {
 
     @Mock
     private UsuarioService usuarioService;
-
 
     @BeforeEach
     void inicio() {
@@ -82,5 +82,27 @@ public class CaixaServiceTest {
         assertEquals(caixa.getCodigo(), codigoCaixa);
         assertEquals("Caixa diário", caixa.getDescricao());
         assertEquals(usuario, caixa.getUsuario());
+    }
+    @Test
+    @DisplayName("Teste de Fechar o caixa")
+    void FecharCaixa(){
+        Long caixa = 1L;
+        String senhaErro = "123";
+
+
+        Usuario usuario = new Usuario();
+        usuario.setSenha("SenhaCorreta");
+
+        when(usuarioService.buscaUsuario(anyString())).thenReturn(usuario);
+
+        String resultado = caixaService.fechaCaixa(caixa, senhaErro);
+
+        assertEquals("Senha incorreta", resultado);
+
+        resultado = caixaService.fechaCaixa(caixa, "SenhaCorreta");
+
+        assertEquals("Caixa fechado com sucesso", resultado);
+
+
     }
 }
