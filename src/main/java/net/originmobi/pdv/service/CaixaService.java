@@ -39,6 +39,7 @@ public class CaixaService {
 	private CaixaLancamentoService lancamentos;
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+
 	public Long cadastro(Caixa caixa) {
 
 		if (caixa.getTipo().equals(CaixaTipo.CAIXA) && caixaIsAberto())
