@@ -10,7 +10,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit.jupiter.EnabledIf;
 
 import java.util.Optional;
 
@@ -32,17 +31,13 @@ public class EmpresaServiceTest {
     @Mock
     private EnderecoService enderecoService;
 
+    @InjectMocks
     private EmpresaService empresaService;
 
     @BeforeEach
     public void setup() {
-        MockitoAnnotations.openMocks(this);
-        empresaService = new EmpresaService();
-        empresaService.setEmpresas(empresaRepository);
-        empresaService.setParametros(empresaParametrosRepository);
-        empresaService.setRegimes(regimeTributarioService);
-        empresaService.setCidades(cidadeService);
-        empresaService.setEnderecos(enderecoService);
+
+        MockitoAnnotations.initMocks(this);
     }
 
     @Test
@@ -50,13 +45,12 @@ public class EmpresaServiceTest {
         Empresa empresa = new Empresa();
         empresa.setNome("Test Empresa");
 
-        // Simular o comportamento do repositório
-        doNothing().when(empresaRepository).save(empresa);
+        doNothing().when(empresaRepository).save(any(Empresa.class)); // Método void
 
-        // Chamar o método
+
         empresaService.cadastro(empresa);
 
-        // Verificar se o método save() foi chamado
+
         verify(empresaRepository, times(1)).save(empresa);
     }
 
@@ -65,13 +59,13 @@ public class EmpresaServiceTest {
         Empresa empresa = new Empresa();
         empresa.setNome("Empresa Existente");
 
-        // Mock do comportamento de busca no repositório
+
         when(empresaRepository.buscaEmpresaCadastrada()).thenReturn(Optional.of(empresa));
 
-        // Chamar o método
+
         Optional<Empresa> result = empresaService.verificaEmpresaCadastrada();
 
-        // Verificar o retorno
+
         assertTrue(result.isPresent());
         assertEquals("Empresa Existente", result.get().getNome());
     }
@@ -98,23 +92,17 @@ public class EmpresaServiceTest {
         RegimeTributario regime = new RegimeTributario();
         Cidade cidade = new Cidade();
 
-        // Mocks para comportamento esperado
-        when(empresaRepository.update(anyLong(), anyString(), anyString(), anyString(), anyString(), anyLong()))
-                .thenReturn(1); // Simula sucesso na atualização
 
-        when(empresaParametrosRepository.update(anyInt(), anyInt(), anyDouble()))
-                .thenReturn(1); // Simula sucesso na atualização de parâmetros
-
-        when(enderecoService.update(anyLong(), anyLong(), anyString(), anyString(), anyString(), anyString(), anyString()))
-                .thenReturn(1); // Simula sucesso na atualização de endereço
-
+        doNothing().when(empresaRepository).update(anyLong(), anyString(), anyString(), anyString(), anyString(), anyLong()); // Método void
+        doNothing().when(empresaParametrosRepository).update(anyInt(), anyInt(), anyDouble()); // Método void
+        doNothing().when(enderecoService).update(anyLong(), anyLong(), anyString(), anyString(), anyString(), anyString(), anyString()); // Método void
         when(regimeTributarioService.busca(anyLong())).thenReturn(Optional.of(regime));
         when(cidadeService.busca(anyLong())).thenReturn(Optional.of(cidade));
 
-        // Chama o método
+
         String result = empresaService.merger(codigo, nome, nomeFantasia, cnpj, ie, serie, ambiente, codRegime, codEndereco, codCidade, rua, bairro, numero, cep, referencia, aliqCalcCredito);
 
-        // Verificar se o resultado é o esperado
+
         assertEquals("Empresa salva com sucesso", result);
     }
 
@@ -137,27 +125,18 @@ public class EmpresaServiceTest {
         String referencia = "Em frente ao parque";
         Double aliqCalcCredito = 0.18;
 
-        // Mocks para comportamento esperado
+
         when(empresaRepository.save(any(Empresa.class)))
                 .thenReturn(new Empresa()); // Simula sucesso na criação da empresa
-
         when(empresaParametrosRepository.save(any(EmpresaParametro.class)))
                 .thenReturn(new EmpresaParametro()); // Simula sucesso na criação do parâmetro
+        doNothing().when(enderecoService).cadastrar(any(Endereco.class)); // Método void
+        when(regimeTributarioService.busca(anyLong())).thenReturn(Optional.of(new RegimeTributario())); // Simula sucesso na busca de regime
+        when(cidadeService.busca(anyLong())).thenReturn(Optional.of(new Cidade())); // Simula sucesso na busca da cidade
 
-        when(enderecoService.cadastrar(any(Endereco.class)))
-                .thenReturn(new Endereco()); // Simula sucesso no cadastro do endereço
-
-        when(regimeTributarioService.busca(anyLong()))
-                .thenReturn(Optional.of(new RegimeTributario())); // Simula sucesso na busca de regime
-
-        when(cidadeService.busca(anyLong()))
-                .thenReturn(Optional.of(new Cidade())); // Simula sucesso na busca da cidade
-
-        // Chama o método
         String result = empresaService.merger(codigo, nome, nomeFantasia, cnpj, ie, serie, ambiente, codRegime, codEndereco, codCidade, rua, bairro, numero, cep, referencia, aliqCalcCredito);
 
-        // Verificar se o resultado é o esperado
+
         assertEquals("Empresa salva com sucesso", result);
     }
-
 }
