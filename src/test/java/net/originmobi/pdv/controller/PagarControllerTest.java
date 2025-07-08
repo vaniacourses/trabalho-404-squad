@@ -1,18 +1,24 @@
 package net.originmobi.pdv.controller;
 
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.Mockito;
+import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -109,9 +115,22 @@ class PagarControllerTest {
         filter = new PagarParcelaFilter();
     }
 
+    @AfterEach
+    void tearDown() {
+        // Limpar todos os mocks após cada teste para garantir isolamento
+        Mockito.reset(
+            pagarService,
+            pagarParcelaService,
+            fornecedorService,
+            pagarTipoService,
+            caixaService
+        );
+    }
+
     @Test
     @DisplayName("Deve listar todas as parcelas pendentes quando não houver filtro")
     void deveListarTodasParcelasPendentes() throws Exception {
+        // Arrange - Mock com comportamento específico
         when(pagarParcelaService.lista(Mockito.any(PagarParcelaFilter.class), Mockito.any(Pageable.class)))
             .thenReturn(paginaParcelas);
 
@@ -121,6 +140,16 @@ class PagarControllerTest {
             .andExpect(model().attribute("parcelas", hasSize(2)))
             .andExpect(model().attribute("qtdpaginas", is(1)))
             .andExpect(model().attribute("pagAtual", is(0)));
+
+        // Verify - Garantir que o serviço foi chamado com os parâmetros corretos
+        verify(pagarParcelaService, times(1)).lista(
+            Mockito.any(PagarParcelaFilter.class), 
+            Mockito.any(Pageable.class)
+        );
+        
+        // Verificar que outros serviços NÃO foram chamados desnecessariamente
+        verifyNoMoreInteractions(fornecedorService);
+        verifyNoMoreInteractions(pagarTipoService);
     }
 
     @Test
@@ -138,6 +167,49 @@ class PagarControllerTest {
             .andExpect(status().isOk())
             .andExpect(view().name("pagar/list"))
             .andExpect(model().attribute("parcelas", hasSize(1)));
+    }
+
+    @Test
+    @DisplayName("Deve filtrar parcelas por fornecedor com isolamento completo")
+    void deveListarParcelasPorFornecedorComIsolamento() throws Exception {
+        // Arrange
+        String nomeFornecedor = "Fornecedor Teste";
+        ArgumentCaptor<PagarParcelaFilter> filterCaptor = ArgumentCaptor.forClass(PagarParcelaFilter.class);
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        
+        List<PagarParcela> parcelasFiltradas = parcelas.subList(0, 1);
+        Page<PagarParcela> paginaFiltrada = new PageImpl<>(parcelasFiltradas, pageable, parcelasFiltradas.size());
+
+        when(pagarParcelaService.lista(any(PagarParcelaFilter.class), any(Pageable.class)))
+            .thenReturn(paginaFiltrada);
+
+        // Act
+        mockMvc.perform(get("/pagar")
+                .param("fornecedor", nomeFornecedor))
+            .andExpect(status().isOk())
+            .andExpect(view().name("pagar/list"))
+            .andExpect(model().attribute("parcelas", hasSize(1)));
+
+        // Verify - Capturar e verificar os argumentos exatos que foram passados
+        verify(pagarParcelaService, times(1)).lista(
+            filterCaptor.capture(), 
+            pageableCaptor.capture()
+        );
+        
+        // Verificar que o filtro foi configurado corretamente
+        PagarParcelaFilter capturedFilter = filterCaptor.getValue();
+        assertThat(capturedFilter.getNome(), equalTo(nomeFornecedor));
+        
+        // Verificar que a paginação foi configurada corretamente  
+        Pageable capturedPageable = pageableCaptor.getValue();
+        assertThat(capturedPageable.getPageNumber(), equalTo(0));
+        assertThat(capturedPageable.getPageSize(), equalTo(10));
+        
+        // Garantir isolamento - outros serviços não foram chamados
+        verifyNoMoreInteractions(pagarService);
+        verifyNoMoreInteractions(fornecedorService);
+        verifyNoMoreInteractions(pagarTipoService);
+        verifyNoMoreInteractions(caixaService);
     }
 
     @Test
@@ -216,9 +288,10 @@ class PagarControllerTest {
         String vlpago = "50,00";
         String desconto = "0,00";
         String acrescimo = "0,00";
+        String expectedResponse = "Pagamento realizado com sucesso";
 
         when(pagarService.quitar(codParcela, 50.0, 0.0, 0.0, codCaixa))
-            .thenReturn("Pagamento realizado com sucesso");
+            .thenReturn(expectedResponse);
 
         mockMvc.perform(post("/pagar/quitar")
                 .param("parcela", codParcela.toString())
@@ -227,7 +300,22 @@ class PagarControllerTest {
                 .param("desconto", desconto)
                 .param("acrescimo", acrescimo))
             .andExpect(status().isOk())
-            .andExpect(content().string("Pagamento realizado com sucesso"));
+            .andExpect(content().string(expectedResponse));
+
+        // Verify - Garantir isolamento completo
+        verify(pagarService, times(1)).quitar(
+            eq(codParcela), 
+            eq(50.0), 
+            eq(0.0), 
+            eq(0.0), 
+            eq(codCaixa)
+        );
+        
+        // Verificar que nenhum outro serviço foi chamado
+        verifyNoMoreInteractions(pagarParcelaService);
+        verifyNoMoreInteractions(fornecedorService);
+        verifyNoMoreInteractions(pagarTipoService);
+        verifyNoMoreInteractions(caixaService);
     }
 
     @Test
@@ -301,9 +389,11 @@ class PagarControllerTest {
     void deveFalharQuandoValorPagamentoInvalido() throws Exception {
         Long codParcela = 1L;
         Long codCaixa = 1L;
+        String expectedErrorMessage = "Valor de pagamento inválido";
 
+        // Configurar mock para simular exceção de negócio
         when(pagarService.quitar(codParcela, -50.0, 0.0, 0.0, codCaixa))
-            .thenThrow(new RuntimeException("Valor de pagamento inválido"));
+            .thenThrow(new RuntimeException(expectedErrorMessage));
 
         mockMvc.perform(post("/pagar/quitar")
                 .param("parcela", codParcela.toString())
@@ -312,7 +402,22 @@ class PagarControllerTest {
                 .param("desconto", "0,00")
                 .param("acrescimo", "0,00"))
             .andExpect(status().isBadRequest())
-            .andExpect(content().string("Valor de pagamento inválido"));
+            .andExpect(content().string(expectedErrorMessage));
+
+        // Verify - Verificar que apenas o serviço de pagamento foi chamado
+        verify(pagarService, times(1)).quitar(
+            eq(codParcela), 
+            eq(-50.0), 
+            eq(0.0), 
+            eq(0.0), 
+            eq(codCaixa)
+        );
+        
+        // Verificar que outros serviços não foram afetados
+        verifyNoMoreInteractions(pagarParcelaService);
+        verifyNoMoreInteractions(fornecedorService);
+        verifyNoMoreInteractions(pagarTipoService);
+        verifyNoMoreInteractions(caixaService);
     }
 
     @Test
