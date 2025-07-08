@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
@@ -130,10 +131,11 @@ class PagarControllerTest {
     @Test
     @DisplayName("Deve listar todas as parcelas pendentes quando não houver filtro")
     void deveListarTodasParcelasPendentes() throws Exception {
-        // Arrange - Mock com comportamento específico
-        when(pagarParcelaService.lista(Mockito.any(PagarParcelaFilter.class), Mockito.any(Pageable.class)))
+        // Arrange
+        when(pagarParcelaService.lista(any(PagarParcelaFilter.class), any(Pageable.class)))
             .thenReturn(paginaParcelas);
 
+        // Act & Assert
         mockMvc.perform(get("/pagar"))
             .andExpect(status().isOk())
             .andExpect(view().name("pagar/list"))
@@ -141,13 +143,8 @@ class PagarControllerTest {
             .andExpect(model().attribute("qtdpaginas", is(1)))
             .andExpect(model().attribute("pagAtual", is(0)));
 
-        // Verify - Garantir que o serviço foi chamado com os parâmetros corretos
-        verify(pagarParcelaService, times(1)).lista(
-            Mockito.any(PagarParcelaFilter.class), 
-            Mockito.any(Pageable.class)
-        );
-        
-        // Verificar que outros serviços NÃO foram chamados desnecessariamente
+        // Verify
+        verify(pagarParcelaService, times(1)).lista(any(PagarParcelaFilter.class), any(Pageable.class));
         verifyNoMoreInteractions(fornecedorService);
         verifyNoMoreInteractions(pagarTipoService);
     }
