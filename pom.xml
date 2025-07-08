@@ -136,6 +136,20 @@
 			<version>2.0.2.RELEASE</version>
 		</dependency>
 
+		<!-- Dependências Selenium para testes de sistema -->
+		<dependency>
+			<groupId>org.seleniumhq.selenium</groupId>
+			<artifactId>selenium-java</artifactId>
+			<version>4.15.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.github.bonigarcia</groupId>
+			<artifactId>webdrivermanager</artifactId>
+			<version>5.6.2</version>
+			<scope>test</scope>
+		</dependency>
+
 
 	</dependencies>
 
@@ -146,12 +160,42 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
 
+			<!-- JaCoCo configuration -->
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.8.10</version>
+				<configuration>
+					<excludes>
+						<!-- Excluir classes de modelo/entidade -->
+						<exclude>**/model/**/*</exclude>
+						<exclude>**/entity/**/*</exclude>
+						<!-- Excluir classes de configuração -->
+						<exclude>**/config/**/*</exclude>
+						<!-- Excluir DTOs -->
+						<exclude>**/dto/**/*</exclude>
+					</excludes>
+					<rules>
+						<rule>
+							<element>CLASS</element>
+							<limits>
+								<limit>
+									<counter>LINE</counter>
+									<value>COVEREDRATIO</value>
+									<minimum>0.80</minimum>
+								</limit>
+								<limit>
+									<counter>BRANCH</counter>
+									<value>COVEREDRATIO</value>
+									<minimum>0.80</minimum>
+								</limit>
+							</limits>
+						</rule>
+					</rules>
+				</configuration>
 				<executions>
 					<execution>
+						<id>prepare-agent</id>
 						<goals>
 							<goal>prepare-agent</goal>
 						</goals>
@@ -161,6 +205,56 @@
 						<phase>verify</phase>
 						<goals>
 							<goal>report</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>check</id>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- PIT Mutation Testing -->
+			<plugin>
+				<groupId>org.pitest</groupId>
+				<artifactId>pitest-maven</artifactId>
+				<version>1.15.0</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.pitest</groupId>
+						<artifactId>pitest-junit5-plugin</artifactId>
+						<version>1.2.0</version>
+					</dependency>
+				</dependencies>
+				<configuration>
+					<targetClasses>
+						<param>net.originmobi.pdv.controller.*</param>
+						<param>net.originmobi.pdv.service.*</param>
+					</targetClasses>
+					<targetTests>
+						<param>net.originmobi.pdv.controller.*Test</param>
+						<param>net.originmobi.pdv.service.*Test</param>
+					</targetTests>
+					<mutationThreshold>80</mutationThreshold>
+					<outputFormats>
+						<outputFormat>HTML</outputFormat>
+						<outputFormat>XML</outputFormat>
+					</outputFormats>
+					<timestampedReports>false</timestampedReports>
+					<excludedClasses>
+						<param>**/*Config*</param>
+						<param>**/*DTO*</param>
+						<param>**/model/*</param>
+						<param>**/entity/*</param>
+					</excludedClasses>
+				</configuration>
+				<executions>
+					<execution>
+						<id>mutation-coverage</id>
+						<goals>
+							<goal>mutationCoverage</goal>
 						</goals>
 					</execution>
 				</executions>
