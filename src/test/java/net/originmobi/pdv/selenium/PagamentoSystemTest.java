@@ -31,7 +31,17 @@ import io.github.bonigarcia.wdm.WebDriverManager;
  * Testes de Sistema com Selenium para módulo de Pagamentos.
  * 
  * Verifica o funcionamento da aplicação através da interface web,
- * simulando interações reais do usuário.
+ * simulando interações reais do usuário. Os testes cobrem os principais
+ * fluxos de negócio relacionados a pagamentos:
+ * 
+ * - Listagem e filtro de despesas
+ * - Criação de novas despesas
+ * - Validação de campos obrigatórios
+ * - Pagamento total e parcial de despesas
+ * - Validações de regras de negócio (data, valor mínimo, caixa)
+ * 
+ * @see net.originmobi.pdv.controller.PagarController
+ * @see net.originmobi.pdv.service.PagamentoService
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(locations = "classpath:application-test.properties")
@@ -54,12 +64,11 @@ class PagamentoSystemTest {
     private static final String SELECTOR_MODAL_DESPESA = ".modalDespesa";
     private static final String SELECTOR_MODAL_PAGAMENTO = ".modalpagdespesa";
     
-    // Constantes de IDs de elementos
+    // Constantes de IDs de elementos do formulário de despesa
     private static final String ID_FORNECEDOR = "codFornecedor";
     private static final String ID_VALOR_TOTAL = "vltotalDespesa";
     private static final String ID_TIPO_DESPESA = "despesatipo";
     private static final String ID_DATA_VENCIMENTO = "dataVencimento";
-    private static final String ID_OBS = "obs";
     private static final String ID_VALOR_PAGO = "valorpago";
     private static final String ID_CAIXA = "caixa";
     
@@ -79,6 +88,10 @@ class PagamentoSystemTest {
     private WebDriver driver;
     private WebDriverWait wait;
 
+    /**
+     * Configura o ambiente de teste antes de cada caso de teste.
+     * Inicializa o WebDriver em modo headless e realiza login no sistema.
+     */
     @BeforeEach
     void setUp() {
         logger.info("Iniciando teste de sistema");
@@ -91,6 +104,10 @@ class PagamentoSystemTest {
         fazerLogin();
     }
 
+    /**
+     * Limpa recursos após cada teste.
+     * Garante que o WebDriver seja fechado adequadamente.
+     */
     @AfterEach
     void tearDown() {
         if (driver != null) {
@@ -99,6 +116,11 @@ class PagamentoSystemTest {
         }
     }
 
+    /**
+     * Realiza login no sistema com credenciais de teste.
+     * Este método é chamado no setUp para garantir que todos os testes
+     * iniciem com uma sessão autenticada.
+     */
     private void fazerLogin() {
         logger.info("Realizando login no sistema");
         driver.get(String.format(BASE_URL + PAGE_LOGIN, port));
@@ -108,6 +130,12 @@ class PagamentoSystemTest {
         wait.until(ExpectedConditions.urlContains(PAGE_HOME));
     }
 
+    /**
+     * Aguarda a atualização da tabela de despesas após operações assíncronas.
+     * Verifica se a tabela foi carregada e possui linhas ou está vazia.
+     * 
+     * @throws org.openqa.selenium.TimeoutException se a tabela não atualizar dentro do timeout
+     */
     private void aguardarAtualizacaoTabela() {
         wait.until((ExpectedCondition<Boolean>) driver -> {
             try {
@@ -119,10 +147,23 @@ class PagamentoSystemTest {
         });
     }
 
+    /**
+     * Aguarda e obtém um alerta JavaScript da página.
+     * 
+     * @return Alert objeto representando o alerta JavaScript
+     * @throws org.openqa.selenium.TimeoutException se nenhum alerta aparecer dentro do timeout
+     */
     private Alert aguardarEObterAlerta() {
         return wait.until(ExpectedConditions.alertIsPresent());
     }
 
+    /**
+     * Valida o texto de um alerta e o fecha.
+     * 
+     * @param mensagemEsperada texto que deve estar contido no alerta
+     * @param esperaSucesso true se espera mensagem de sucesso, false para erro
+     * @throws AssertionError se o texto do alerta não corresponder ao esperado
+     */
     private void validarEFecharAlerta(String mensagemEsperada, boolean esperaSucesso) {
         Alert alert = aguardarEObterAlerta();
         String texto = alert.getText();
@@ -139,12 +180,21 @@ class PagamentoSystemTest {
         alert.accept();
     }
 
+    /**
+     * Navega para a página principal de pagamentos e aguarda carregamento.
+     * 
+     * @throws org.openqa.selenium.TimeoutException se a página não carregar dentro do timeout
+     */
     private void navegarParaPaginaPagamentos() {
         logger.info("Navegando para página de pagamentos");
         driver.get(String.format(BASE_URL + PAGE_PAGAR, port));
         wait.until(ExpectedConditions.presenceOfElementLocated(By.cssSelector(SELECTOR_TABELA_DESPESAS)));
     }
 
+    /**
+     * Verifica se a listagem de despesas é exibida corretamente.
+     * Valida o título da página, presença da tabela e suas colunas.
+     */
     @Test
     @DisplayName("SISTEMA: Deve listar despesas corretamente")
     void deveListarDespesasCorretamente() {
@@ -167,38 +217,19 @@ class PagamentoSystemTest {
         assertEquals("Observação", cabecalhos.get(2).getText().trim());
     }
 
+    /**
+     * Testa o fluxo completo de criação de uma nova despesa.
+     * Verifica se é possível preencher todos os campos obrigatórios
+     * e criar uma despesa com sucesso.
+     */
     @Test
     @DisplayName("SISTEMA: Deve criar nova despesa com sucesso")
     void deveCriarNovaDespesaComSucesso() {
-        // Navegar para página de despesas
         navegarParaPaginaPagamentos();
         
-        // Clicar no botão Novo
-        WebElement btnNovo = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".btnAbreModal")));
-        btnNovo.click();
-        
-        // Aguardar modal abrir
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.className("modalDespesa")));
-        
-        // Preencher formulário no modal
-        WebElement selectFornecedor = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("codFornecedor")));
-        new Select(selectFornecedor).selectByIndex(1); // Seleciona primeiro fornecedor disponível
-        
-        WebElement inputValor = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("vltotalDespesa")));
-        inputValor.clear();
-        inputValor.sendKeys(VALOR_DESPESA);
-        
-        WebElement selectTipo = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("despesatipo")));
-        new Select(selectTipo).selectByIndex(1); // Seleciona primeiro tipo disponível
-        
-        // Preencher data de vencimento
-        WebElement dataVenc = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("dataVencimento")));
-        dataVenc.clear();
-        dataVenc.sendKeys(DATA_VENCIMENTO);
-        
-        // Preencher observação
-        WebElement obs = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("obs")));
-        obs.sendKeys(OBS_TESTE);
+        // Abrir modal e preencher formulário
+        abrirModalNovaDespesa();
+        preencherFormularioDespesa(1, VALOR_DESPESA, 1, DATA_VENCIMENTO, OBS_TESTE);
         
         // Clicar no botão Lançar
         WebElement btnLancar = wait.until(ExpectedConditions.elementToBeClickable(By.className("btn-despesa")));
@@ -207,12 +238,16 @@ class PagamentoSystemTest {
         // Validar mensagem de sucesso
         validarEFecharAlerta(MSG_SUCESSO, true);
         
-        // Verificar que modal fechou e tabela atualizou
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(By.className("modalDespesa")));
-        wait.until(ExpectedConditions.presenceOfElementLocated(
-            By.xpath("//td[normalize-space(text())='Despesa de teste automatizado']")));
+        // Verificar que modal fechou e despesa foi criada
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector(SELECTOR_MODAL_DESPESA)));
+        WebElement despesaCriada = localizarDespesaPorObservacao(OBS_TESTE);
+        assertNotNull(despesaCriada, "Despesa deve ser encontrada na tabela");
     }
 
+    /**
+     * Verifica se o sistema valida corretamente campos obrigatórios
+     * ao tentar criar uma despesa sem preenchê-los.
+     */
     @Test
     @DisplayName("SISTEMA: Deve validar campos obrigatórios ao criar despesa")
     void deveValidarCamposObrigatoriosAoCriarDespesa() {
@@ -238,6 +273,10 @@ class PagamentoSystemTest {
             "Modal deve permanecer aberto após erro de validação");
     }
     
+    /**
+     * Testa a funcionalidade de filtro de despesas.
+     * Verifica se o sistema retorna resultados corretos ao buscar por um termo.
+     */
     @Test
     @DisplayName("SISTEMA: Deve filtrar despesas corretamente")
     void deveFiltrarDespesasCorretamente() {
@@ -268,6 +307,11 @@ class PagamentoSystemTest {
         }
     }
     
+    /**
+     * Testa o fluxo completo de pagamento de uma despesa.
+     * Cria uma nova despesa e realiza seu pagamento total,
+     * verificando se o status é atualizado corretamente.
+     */
     @Test
     @DisplayName("SISTEMA: Deve realizar pagamento de despesa com sucesso")
     void deveRealizarPagamentoDeDespesaComSucesso() {
@@ -305,6 +349,11 @@ class PagamentoSystemTest {
             By.xpath("//td[normalize-space(text())='Despesa de teste automatizado']/../@class[contains(.,'warning')]")));
     }
 
+    /**
+     * Verifica se o sistema valida corretamente a tentativa
+     * de pagamento com valor zero. O pagamento deve ser rejeitado
+     * e uma mensagem de erro apropriada deve ser exibida.
+     */
     @Test
     @DisplayName("SISTEMA: Deve validar valor mínimo ao pagar despesa")
     void deveValidarValorMinimoAoPagarDespesa() {
@@ -340,44 +389,39 @@ class PagamentoSystemTest {
             "Modal deve permanecer aberto após erro de validação");
     }
     
+    /**
+     * Testa o cenário de pagamento parcial de uma despesa.
+     * Verifica se é possível pagar apenas parte do valor
+     * e se o status da despesa permanece como pendente.
+     */
     @Test
     @DisplayName("SISTEMA: Deve realizar pagamento parcial de despesa")
     void deveRealizarPagamentoParcialDeDespesa() {
-        // Primeiro criar uma despesa de teste
+        // Criar despesa de teste
         deveCriarNovaDespesaComSucesso();
         
         // Localizar e clicar no botão de pagamento
-        WebElement btnPagar = wait.until(ExpectedConditions.elementToBeClickable(
-            By.xpath(String.format("//td[normalize-space(text())='%s']/..//a[contains(@class,'btn-modal-paga')]", OBS_TESTE))));
-        btnPagar.click();
+        WebElement despesa = localizarDespesaPorObservacao(OBS_TESTE);
+        despesa.findElement(By.cssSelector("a.btn-modal-paga")).click();
         
-        // Aguardar modal de pagamento
+        // Aguardar modal e realizar pagamento parcial
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(SELECTOR_MODAL_PAGAMENTO)));
-        
-        // Alterar para pagamento parcial
-        WebElement valorPago = wait.until(ExpectedConditions.presenceOfElementLocated(By.id(ID_VALOR_PAGO)));
-        valorPago.clear();
-        valorPago.sendKeys("75,00"); // Metade do valor total
-        
-        // Selecionar caixa
-        WebElement selectCaixa = wait.until(ExpectedConditions.presenceOfElementLocated(By.id(ID_CAIXA)));
-        new Select(selectCaixa).selectByIndex(0);
-        
-        // Confirmar pagamento
-        WebElement btnConfirmarPagamento = wait.until(ExpectedConditions.elementToBeClickable(By.className("btn-pag-despesa")));
-        btnConfirmarPagamento.click();
+        realizarPagamentoDespesa("75,00", 0);
         
         // Validar sucesso
         validarEFecharAlerta(MSG_SUCESSO, true);
         
-        // Verificar que modal fechou
+        // Verificar que modal fechou e despesa continua pendente
         wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector(SELECTOR_MODAL_PAGAMENTO)));
-        
-        // Verificar que a despesa ainda está pendente (não tem classe warning)
-        wait.until(ExpectedConditions.presenceOfElementLocated(
-            By.xpath(String.format("//td[normalize-space(text())='%s']/../not(@class='warning')", OBS_TESTE))));
+        despesa = localizarDespesaPorObservacao(OBS_TESTE);
+        assertFalse(despesa.getAttribute("class").contains("warning"), 
+            "Despesa com pagamento parcial não deve estar marcada como quitada");
     }
     
+    /**
+     * Verifica se o sistema valida corretamente a obrigatoriedade
+     * de seleção de um caixa ao realizar um pagamento.
+     */
     @Test
     @DisplayName("SISTEMA: Deve validar seleção de caixa ao pagar despesa")
     void deveValidarSelecaoDeCaixaAoPagarDespesa() {
@@ -404,6 +448,11 @@ class PagamentoSystemTest {
             "Modal deve permanecer aberto após erro de validação");
     }
 
+    /**
+     * Testa a validação de formato de data no campo de vencimento.
+     * Verifica se o sistema rejeita datas inválidas e exibe
+     * mensagem de erro apropriada.
+     */
     @Test
     @DisplayName("SISTEMA: Deve validar data de vencimento ao criar despesa")
     void deveValidarDataVencimentoAoCriarDespesa() {
@@ -438,8 +487,83 @@ class PagamentoSystemTest {
         // Validar erro
         validarEFecharAlerta("data", false);
         
-        // Modal deve continuar aberto
+        // Modal deve continuar aberta
         assertTrue(driver.findElement(By.cssSelector(SELECTOR_MODAL_DESPESA)).isDisplayed(), 
-            "Modal deve permanecer aberto após erro de validação");
+            "Modal deve permanecer aberta após erro de validação");
+    }
+    
+    /**
+     * Abre o modal de nova despesa e aguarda seu carregamento.
+     * 
+     * @return o elemento WebElement representando o modal
+     * @throws org.openqa.selenium.TimeoutException se o modal não abrir dentro do timeout
+     */
+    private WebElement abrirModalNovaDespesa() {
+        WebElement btnNovo = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(SELECTOR_BTN_NOVO)));
+        btnNovo.click();
+        return wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(SELECTOR_MODAL_DESPESA)));
+    }
+
+    /**
+     * Preenche os campos básicos do formulário de despesa.
+     * 
+     * @param fornecedorIndex índice do fornecedor a selecionar
+     * @param valor valor da despesa
+     * @param tipoIndex índice do tipo de despesa
+     * @param dataVencimento data de vencimento no formato dd/MM/yyyy
+     * @param observacao texto da observação
+     */
+    private void preencherFormularioDespesa(int fornecedorIndex, String valor, int tipoIndex, String dataVencimento, String observacao) {
+        WebElement selectFornecedor = wait.until(ExpectedConditions.presenceOfElementLocated(By.id(ID_FORNECEDOR)));
+        new Select(selectFornecedor).selectByIndex(fornecedorIndex);
+        
+        WebElement inputValor = wait.until(ExpectedConditions.presenceOfElementLocated(By.id(ID_VALOR_TOTAL)));
+        inputValor.clear();
+        inputValor.sendKeys(valor);
+        
+        WebElement selectTipo = wait.until(ExpectedConditions.presenceOfElementLocated(By.id(ID_TIPO_DESPESA)));
+        new Select(selectTipo).selectByIndex(tipoIndex);
+        
+        WebElement dataVenc = wait.until(ExpectedConditions.presenceOfElementLocated(By.id(ID_DATA_VENCIMENTO)));
+        dataVenc.clear();
+        dataVenc.sendKeys(dataVencimento);
+        
+        if (observacao != null && !observacao.isEmpty()) {
+            WebElement obs = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("obs")));
+            obs.sendKeys(observacao);
+        }
+    }
+
+    /**
+     * Realiza o pagamento de uma despesa.
+     * 
+     * @param valorPagamento valor a ser pago
+     * @param caixaIndex índice do caixa a ser selecionado
+     * @throws AssertionError se houver erro na operação
+     */
+    private void realizarPagamentoDespesa(String valorPagamento, int caixaIndex) {
+        WebElement valorPago = wait.until(ExpectedConditions.presenceOfElementLocated(By.id(ID_VALOR_PAGO)));
+        if (valorPagamento != null) {
+            valorPago.clear();
+            valorPago.sendKeys(valorPagamento);
+        }
+        
+        WebElement selectCaixa = wait.until(ExpectedConditions.presenceOfElementLocated(By.id(ID_CAIXA)));
+        new Select(selectCaixa).selectByIndex(caixaIndex);
+        
+        WebElement btnConfirmarPagamento = wait.until(ExpectedConditions.elementToBeClickable(By.className("btn-pag-despesa")));
+        btnConfirmarPagamento.click();
+    }
+
+    /**
+     * Localiza uma despesa na tabela pelo texto da observação.
+     * 
+     * @param observacao texto para localizar a despesa
+     * @return WebElement representando a linha da despesa
+     * @throws org.openqa.selenium.TimeoutException se a despesa não for encontrada
+     */
+    private WebElement localizarDespesaPorObservacao(String observacao) {
+        return wait.until(ExpectedConditions.presenceOfElementLocated(
+            By.xpath(String.format("//td[normalize-space(text())='%s']/..", observacao))));
     }
 }
