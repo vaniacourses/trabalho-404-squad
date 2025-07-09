@@ -36,7 +36,6 @@ public class EmpresaService {
 	private EnderecoService enderecos;
 
 	public void cadastro(Empresa empresa) {
-
 		try {
 			empresas.save(empresa);
 		} catch (Exception e) {
@@ -46,19 +45,14 @@ public class EmpresaService {
 
 	public Optional<Empresa> verificaEmpresaCadastrada() {
 		Optional<Empresa> empresa = empresas.buscaEmpresaCadastrada();
-
-		if (empresa.isPresent())
-			return empresa;
-
-		Optional<Empresa> empresaOptiona = Optional.empty();
-
-		return empresaOptiona;
+		return empresa;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String merger(Long codigo, String nome, String nome_fantasia, String cnpj, String ie, int serie,
-			int ambiente, Long codRegime, Long codendereco, Long codcidade, String rua, String bairro, String numero,
-			String cep, String referencia, Double aliqCalcCredito) {
+	public String merger(Long codigo, String nome, String nome_fantasia, String cnpj, String ie,
+						 int serie, int ambiente, Long codRegime, Long codendereco,
+						 Long codcidade, String rua, String bairro, String numero,
+						 String cep, String referencia, Double aliqCalcCredito) {
 
 		if (codigo != null) {
 			try {
@@ -94,12 +88,16 @@ public class EmpresaService {
 				return "Erro ao salvar dados da empresa, chame o suporte";
 			}
 
-			Optional<RegimeTributario> tributario = regimes.busca(codRegime);
-			Optional<Cidade> cidade = cidades.busca(codcidade);
+			RegimeTributario tributario = regimes.busca(codRegime)
+					.orElseThrow(() -> new RuntimeException("Regime tributário não encontrado"));
+
+			Cidade cidade = cidades.busca(codcidade)
+					.orElseThrow(() -> new RuntimeException("Cidade não encontrada"));
 
 			LocalDate dataAtual = LocalDate.now();
-			Endereco endereco = new Endereco(rua, bairro, numero, cep, referencia, Date.valueOf(dataAtual),
-					cidade.get());
+			Endereco endereco = new Endereco(
+					rua, bairro, numero, cep, referencia, Date.valueOf(dataAtual), cidade
+			);
 
 			try {
 				enderecos.cadastrar(endereco);
@@ -109,7 +107,7 @@ public class EmpresaService {
 			}
 
 			try {
-				Empresa empresa = new Empresa(nome, nome_fantasia, cnpj, ie, tributario.get(), endereco, parametro);
+				Empresa empresa = new Empresa(nome, nome_fantasia, cnpj, ie, tributario, endereco, parametro);
 				empresas.save(empresa);
 			} catch (Exception e) {
 				System.out.println(e);
@@ -119,5 +117,4 @@ public class EmpresaService {
 
 		return "Empresa salva com sucesso";
 	}
-
 }

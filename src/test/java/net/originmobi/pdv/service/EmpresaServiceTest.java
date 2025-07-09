@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import net.originmobi.pdv.model.*;
 import net.originmobi.pdv.repository.EmpresaParametrosRepository;
 import net.originmobi.pdv.repository.EmpresaRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
@@ -31,15 +32,11 @@ public class EmpresaServiceTest {
     @Mock
     private EnderecoService enderecoService;
 
-    @Mock
-    private TransferenciaService transferenciaService;
-
     @InjectMocks
     private EmpresaService empresaService;
 
     @BeforeEach
     public void setup() {
-
         MockitoAnnotations.initMocks(this);
     }
 
@@ -48,11 +45,7 @@ public class EmpresaServiceTest {
         Empresa empresa = new Empresa();
         empresa.setNome("Test Empresa");
 
-        when(transferenciaService.cadastrar(anyDouble(), anyLong(), anyLong()))
-                .thenReturn("Transferência realizada com sucesso");
-
         empresaService.cadastro(empresa);
-
 
         verify(empresaRepository, times(1)).save(empresa);
     }
@@ -62,12 +55,9 @@ public class EmpresaServiceTest {
         Empresa empresa = new Empresa();
         empresa.setNome("Empresa Existente");
 
-
         when(empresaRepository.buscaEmpresaCadastrada()).thenReturn(Optional.of(empresa));
 
-
         Optional<Empresa> result = empresaService.verificaEmpresaCadastrada();
-
 
         assertTrue(result.isPresent());
         assertEquals("Empresa Existente", result.get().getNome());
@@ -95,23 +85,21 @@ public class EmpresaServiceTest {
         RegimeTributario regime = new RegimeTributario();
         Cidade cidade = new Cidade();
 
-
-        doNothing().when(empresaRepository).update(anyLong(), anyString(), anyString(), anyString(), anyString(), anyLong()); // Método void
-        doNothing().when(empresaParametrosRepository).update(anyInt(), anyInt(), anyDouble()); // Método void
-        doNothing().when(enderecoService).update(anyLong(), anyLong(), anyString(), anyString(), anyString(), anyString(), anyString()); // Método void
+        doNothing().when(empresaRepository).update(anyLong(), anyString(), anyString(), anyString(), anyString(), anyLong());
+        doNothing().when(empresaParametrosRepository).update(anyInt(), anyInt(), anyDouble());
+        doNothing().when(enderecoService).update(anyLong(), anyLong(), anyString(), anyString(), anyString(), anyString(), anyString());
         when(regimeTributarioService.busca(anyLong())).thenReturn(Optional.of(regime));
         when(cidadeService.busca(anyLong())).thenReturn(Optional.of(cidade));
 
-
-        String result = empresaService.merger(codigo, nome, nomeFantasia, cnpj, ie, serie, ambiente, codRegime, codEndereco, codCidade, rua, bairro, numero, cep, referencia, aliqCalcCredito);
-
+        String result = empresaService.merger(codigo, nome, nomeFantasia, cnpj, ie, serie, ambiente, codRegime,
+                codEndereco, codCidade, rua, bairro, numero, cep, referencia, aliqCalcCredito);
 
         assertEquals("Empresa salva com sucesso", result);
     }
 
     @Test
     public void testMerger_CreateNewEmpresa() {
-        Long codigo = null; // Simula uma criação de nova empresa
+        Long codigo = null;
         String nome = "Nova Empresa";
         String nomeFantasia = "Fantasia Teste";
         String cnpj = "12345678000100";
@@ -128,7 +116,6 @@ public class EmpresaServiceTest {
         String referencia = "Em frente ao parque";
         Double aliqCalcCredito = 0.18;
 
-        // Configuração correta dos mocks
         Empresa empresaMock = new Empresa();
         EmpresaParametro parametroMock = new EmpresaParametro();
         RegimeTributario regimeMock = new RegimeTributario();
@@ -144,5 +131,77 @@ public class EmpresaServiceTest {
                 codEndereco, codCidade, rua, bairro, numero, cep, referencia, aliqCalcCredito);
 
         assertEquals("Empresa salva com sucesso", result);
+    }
+
+    @Test
+    public void testMerger_CreateNewEmpresa_RegimeNaoEncontrado() {
+        Long codigo = null;
+        String nome = "Nova Empresa";
+        String nomeFantasia = "Fantasia Teste";
+        String cnpj = "12345678000100";
+        String ie = "123456789";
+        int serie = 1;
+        int ambiente = 1;
+        Long codRegime = 1L;
+        Long codEndereco = 1L;
+        Long codCidade = 1L;
+        String rua = "Rua Teste";
+        String bairro = "Bairro Teste";
+        String numero = "123";
+        String cep = "12345-678";
+        String referencia = "Em frente ao parque";
+        Double aliqCalcCredito = 0.18;
+
+        when(regimeTributarioService.busca(anyLong()))
+                .thenReturn(Optional.empty());
+        when(cidadeService.busca(anyLong()))
+                .thenReturn(Optional.of(new Cidade()));
+
+        RuntimeException ex = assertThrows(
+                RuntimeException.class,
+                () -> empresaService.merger(
+                        codigo, nome, nomeFantasia, cnpj, ie, serie, ambiente,
+                        codRegime, codEndereco, codCidade,
+                        rua, bairro, numero, cep, referencia, aliqCalcCredito
+                )
+        );
+
+        assertEquals("Regime tributário não encontrado", ex.getMessage());
+    }
+
+    @Test
+    public void testMerger_CreateNewEmpresa_CidadeNaoEncontrada() {
+        Long codigo = null;
+        String nome = "Nova Empresa";
+        String nomeFantasia = "Fantasia Teste";
+        String cnpj = "12345678000100";
+        String ie = "123456789";
+        int serie = 1;
+        int ambiente = 1;
+        Long codRegime = 1L;
+        Long codEndereco = 1L;
+        Long codCidade = 1L;
+        String rua = "Rua Teste";
+        String bairro = "Bairro Teste";
+        String numero = "123";
+        String cep = "12345-678";
+        String referencia = "Em frente ao parque";
+        Double aliqCalcCredito = 0.18;
+
+        when(regimeTributarioService.busca(anyLong()))
+                .thenReturn(Optional.of(new RegimeTributario()));
+        when(cidadeService.busca(anyLong()))
+                .thenReturn(Optional.empty());
+
+        RuntimeException ex = assertThrows(
+                RuntimeException.class,
+                () -> empresaService.merger(
+                        codigo, nome, nomeFantasia, cnpj, ie, serie, ambiente,
+                        codRegime, codEndereco, codCidade,
+                        rua, bairro, numero, cep, referencia, aliqCalcCredito
+                )
+        );
+
+        assertEquals("Cidade não encontrada", ex.getMessage());
     }
 }
