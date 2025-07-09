@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  pdv-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pdv-app
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://pdv-db:3306/pdv?useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_FLYWAY_ENABLED=true
+    depends_on:
+      - pdv-db
+    restart: unless-stopped
+    networks:
+      - pdv-network
+
+  pdv-db:
+    image: mysql:5.7
+    container_name: pdv-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=pdv
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - pdv-network
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+
+networks:
+  pdv-network:
+    driver: bridge

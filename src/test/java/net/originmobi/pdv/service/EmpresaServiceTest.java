@@ -125,17 +125,20 @@ public class EmpresaServiceTest {
         String referencia = "Em frente ao parque";
         Double aliqCalcCredito = 0.18;
 
+        // Configuração correta dos mocks
+        Empresa empresaMock = new Empresa();
+        EmpresaParametro parametroMock = new EmpresaParametro();
+        RegimeTributario regimeMock = new RegimeTributario();
+        Cidade cidadeMock = new Cidade();
 
-        when(empresaRepository.save(any(Empresa.class)))
-                .thenReturn(new Empresa()); // Simula sucesso na criação da empresa
-        when(empresaParametrosRepository.save(any(EmpresaParametro.class)))
-                .thenReturn(new EmpresaParametro()); // Simula sucesso na criação do parâmetro
-        doNothing().when(enderecoService).cadastrar(any(Endereco.class)); // Método void
-        when(regimeTributarioService.busca(anyLong())).thenReturn(Optional.of(new RegimeTributario())); // Simula sucesso na busca de regime
-        when(cidadeService.busca(anyLong())).thenReturn(Optional.of(new Cidade())); // Simula sucesso na busca da cidade
+        when(empresaRepository.save(any(Empresa.class))).thenReturn(empresaMock);
+        when(empresaParametrosRepository.save(any(EmpresaParametro.class))).thenReturn(parametroMock);
+        when(enderecoService.cadastrar(any(Endereco.class))).thenReturn(new Endereco());
+        when(regimeTributarioService.busca(anyLong())).thenReturn(Optional.of(regimeMock));
+        when(cidadeService.busca(anyLong())).thenReturn(Optional.of(cidadeMock));
 
-        String result = empresaService.merger(codigo, nome, nomeFantasia, cnpj, ie, serie, ambiente, codRegime, codEndereco, codCidade, rua, bairro, numero, cep, referencia, aliqCalcCredito);
-
+        String result = empresaService.merger(codigo, nome, nomeFantasia, cnpj, ie, serie, ambiente, codRegime,
+                codEndereco, codCidade, rua, bairro, numero, cep, referencia, aliqCalcCredito);
 
         assertEquals("Empresa salva com sucesso", result);
     }
