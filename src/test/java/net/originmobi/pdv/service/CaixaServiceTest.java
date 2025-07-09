@@ -2,16 +2,25 @@ package net.originmobi.pdv.service;
 
 import net.originmobi.pdv.enumerado.caixa.CaixaTipo;
 import net.originmobi.pdv.model.Caixa;
+import net.originmobi.pdv.model.CaixaLancamento;
 import net.originmobi.pdv.model.Usuario;
 import net.originmobi.pdv.repository.CaixaRepository;
 import net.originmobi.pdv.singleton.Aplicacao;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*; // Importa MockitoAnnotations
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
+import java.math.BigDecimal;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
+
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
@@ -34,13 +43,42 @@ public class CaixaServiceTest {
     private UsuarioService usuarioService;
 
     @Mock
+    private CaixaLancamentoService lancamentoService;
+
+    @Mock
+    private BCryptPasswordEncoder passwordEncoder;
+
+    @Mock
     private Aplicacao aplicacaoMock;
 
+    private Usuario usuarioLogado;
+
+    // Variável para controlar o mock estático
+    private MockedStatic<Aplicacao> aplicacaoMockedStatic;
+
     @BeforeEach
-    void inicio() {
-        MockitoAnnotations.initMocks(this);
+    void setUp() {
+        // Inicializa todos os campos anotados com @Mock e @InjectMocks nesta classe.
+        // openMocks() é o sucessor moderno do deprecated initMocks().
+        MockitoAnnotations.openMocks(this);
+
+        usuarioLogado = new Usuario();
+        usuarioLogado.setUser("teste");
+        usuarioLogado.setSenha("hashedPassword");
+
+        // O mock estático precisa ser criado após a inicialização dos mocks
+        aplicacaoMockedStatic = mockStatic(Aplicacao.class);
+        when(Aplicacao.getInstancia()).thenReturn(aplicacaoMock);
+        when(aplicacaoMock.getUsuarioAtual()).thenReturn("teste");
+        when(usuarioService.buscaUsuario(anyString())).thenReturn(usuarioLogado);
     }
-    
+
+    // --- MUDANÇA: Adicionado @AfterEach para limpar o mock estático ---
+    @AfterEach
+    void tearDown() {
+        // É crucial fechar o mock estático após cada teste para não afetar outros testes.
+        aplicacaoMockedStatic.close();
+    }
     //testando o metodo abrir caixa
     @Test
     @DisplayName("Teste do Caixa já aberto")
