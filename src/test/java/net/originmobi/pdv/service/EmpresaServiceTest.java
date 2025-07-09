@@ -31,6 +31,9 @@ public class EmpresaServiceTest {
     @Mock
     private EnderecoService enderecoService;
 
+    @Mock
+    private TransferenciaService transferenciaService;
+
     @InjectMocks
     private EmpresaService empresaService;
 
@@ -45,8 +48,8 @@ public class EmpresaServiceTest {
         Empresa empresa = new Empresa();
         empresa.setNome("Test Empresa");
 
-        doNothing().when(empresaRepository).save(any(Empresa.class)); // Método void
-
+        when(transferenciaService.cadastrar(anyDouble(), anyLong(), anyLong()))
+                .thenReturn("Transferência realizada com sucesso");
 
         empresaService.cadastro(empresa);
 
