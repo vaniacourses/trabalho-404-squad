@@ -24,7 +24,7 @@ public class TransferenciaService {
 	@Autowired
 	private CaixaService caixas;
 
-	public String cadastrar(Double valor, Long origem, Long destino, String obs) {
+	public String cadastrar(Double valor, Long origem, Long destino) {
 		Aplicacao aplicacao = Aplicacao.getInstancia();
 		DataAtual dataAtual = new DataAtual();
 
@@ -33,29 +33,51 @@ public class TransferenciaService {
 		Optional<Caixa> caiOrigem = caixas.busca(origem);
 		Optional<Caixa> caiDestino = caixas.busca(destino);
 
-		if (caiOrigem.equals(caiDestino))
+		if (caiOrigem.equals(caiDestino)) {
 			throw new RuntimeException("Destino é inválido");
+		}
 
-		if (!caiOrigem.isPresent() || caiOrigem.map(Caixa::getData_fechamento).isPresent())
-			throw new RuntimeException("Conta origem não esta aberta, verifique");
+		if (!caiOrigem.isPresent() || caiOrigem.map(Caixa::getData_fechamento).isPresent()) {
+			throw new RuntimeException("Conta origem não está aberta, verifique");
+		}
 
-		if (!caiDestino.isPresent() || caiDestino.map(Caixa::getData_fechamento).isPresent())
-			throw new RuntimeException("Conta destino não esta aberta, verifique");
+		if (!caiDestino.isPresent() || caiDestino.map(Caixa::getData_fechamento).isPresent()) {
+			throw new RuntimeException("Conta destino não está aberta, verifique");
+		}
 
-		if (caiOrigem.map(Caixa::getValor_total).get() < valor)
+		// Evitar chamar get() direto no Optional sem verificar
+		double valorOrigem = caiOrigem
+				.map(Caixa::getValor_total)
+				.orElseThrow(() -> new RuntimeException("Conta origem não encontrada"));
+
+		if (valorOrigem < valor) {
 			throw new RuntimeException("Saldo insuficiente para realizar a transferência");
+		}
 
-		Transferencia transferencia = new Transferencia(valor, dataAtual.dataAtualTimeStamp(), caiOrigem.get(),
-				caiDestino.get(), usuario, "Transferencia para o " + caiDestino.map(Caixa::getDescricao).get() + " "
-						+ caiDestino.map(Caixa::getCodigo).get());
+		// Evitar vários map().get() no destino
+		String descricaoDestino = caiDestino
+				.map(Caixa::getDescricao)
+				.orElse("N/A");
+
+		String codigoDestino = caiDestino
+				.map(c -> c.getCodigo() != null ? c.getCodigo().toString() : "N/A")
+				.orElse("N/A");
+
+		Transferencia transferencia = new Transferencia(
+				valor,
+				dataAtual.dataAtualTimeStamp(),
+				caiOrigem.get(),
+				caiDestino.get(),
+				usuario,
+				"Transferencia para o " + descricaoDestino + " " + codigoDestino
+		);
 
 		try {
 			transferencias.save(transferencia);
 		} catch (Exception e) {
-			throw new RuntimeException("Erro ao realizar a transferencia, chame o suporte");
+			throw new RuntimeException("Erro ao realizar a transferência, chame o suporte");
 		}
 
 		return "Transferência realizada com sucesso";
 	}
-
 }
