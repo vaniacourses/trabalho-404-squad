@@ -54,7 +54,7 @@ public class CaixaServiceTest {
     private Usuario usuarioLogado;
 
     // Variável para controlar o mock estático
-    private MockedStatic<Aplicacao> aplicacaoMockedStatic;
+    private MockedStatic <Aplicacao> aplicacaoMockedStatic;
 
     @BeforeEach
     void setUp() {
@@ -67,7 +67,7 @@ public class CaixaServiceTest {
         usuarioLogado.setSenha("hashedPassword");
 
         // O mock estático precisa ser criado após a inicialização dos mocks
-        aplicacaoMockedStatic = mockStatic(Aplicacao.class);
+        aplicacaoMockedStatic = (MockedStatic<Aplicacao>) mockStatic(Aplicacao.class);
         when(Aplicacao.getInstancia()).thenReturn(aplicacaoMock);
         when(aplicacaoMock.getUsuarioAtual()).thenReturn("teste");
         when(usuarioService.buscaUsuario(anyString())).thenReturn(usuarioLogado);
@@ -76,8 +76,9 @@ public class CaixaServiceTest {
     // --- MUDANÇA: Adicionado @AfterEach para limpar o mock estático ---
     @AfterEach
     void tearDown() {
-        // É crucial fechar o mock estático após cada teste para não afetar outros testes.
-        aplicacaoMockedStatic.close();
+        if (aplicacaoMockedStatic != null) {
+            aplicacaoMockedStatic.close();
+        }
     }
     //testando o metodo abrir caixa
     @Test
