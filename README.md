@@ -29,7 +29,21 @@ Para logar no sistema, use o usuário "gerente" e a senha "123".
 
 # Team-404-SQUAD
 
-- Link do documento Plano de Teste <br>
+
+- Plano de Teste <br>
 https://docs.google.com/document/d/1KcJ-EBOd7ZRk1mPJ03Hrh8wfrlku0R9E/edit?usp=sharing&ouid=108383658840759933254&rtpof=true&sd=true
-- link do documento geral do Trabalho <br>
+- Documento geral do Trabalho <br>
 https://docs.google.com/document/d/1jNFx03L_HjozPYseAo9HGxzXp3AV4yMwRVnor9Q36yA/edit?usp=sharing
+- Slide das Apresentações <br>
+  - 1° Apresentação <br> https://www.canva.com/design/DAGoGWe82HI/zCBUmNXVsdxjKt6Swv4MQg/edit?utm_content=DAGoGWe82HI&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+  - 2° Apresentação <br> https://www.canva.com/design/DAGsoXi_Vmg/kzoPXFguFCs0ISbjQlxaCA/edit?utm_content=DAGsoXi_Vmg&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+- Teste Manual - Testlink <br> 
+- https://docs.google.com/document/d/19x2uhntN-7IQwSFoWIiLNKBSzEBC_ShFwQVcsaO8oDo/edit?usp=sharing
+- Relatório de inspeção - Sonar <br>
+- https://docs.google.com/document/d/1ut65aM_7kh2f_rcgHihJJMhllk-5rxbipK4OOcUm-as/edit?usp=sharing
+- Melhorias dos Casos de teste (Funcional,Estrutual e Mutação)<br>
+- https://docs.google.com/document/d/1tuGlTzQ-R-VI2BC4wwKj68X_AUmNDgfQUWJ7E2Qo5pg/edit?usp=sharing
+- ISO 25010 - Qualidade do produto <br>
+- https://docs.google.com/document/d/1OhB_VYrz0I4UGp05zQ1_S8YeCdkBr_jCeEhV01BrwvU/edit?usp=sharing
+- Testes de integração <br>
+- https://docs.google.com/document/d/1OhB_VYrz0I4UGp05zQ1_S8YeCdkBr_jCeEhV01BrwvU/edit?usp=sharing
