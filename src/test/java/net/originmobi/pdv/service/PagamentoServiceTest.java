@@ -26,7 +26,25 @@ import net.originmobi.pdv.service.PagamentoTipoService;
  */
 //@ExtendWith(MockitoExtension.class)
 @DisplayName("Teste Estrutural - PagamentoTipoService")
-class PagamentoTipoServiceUnitTest {
+class PagamentoServiceTest {
+
+    // Constantes para testes
+    private static final Long CODIGO_PADRAO = 1L;
+    private static final Long CODIGO_DINHEIRO = 2L;
+    private static final Long CODIGO_PIX = 3L;
+    private static final Long CODIGO_INEXISTENTE = 999L;
+    private static final String DESCRICAO_CARTAO = "Cartão de Crédito";
+    private static final String DESCRICAO_DINHEIRO = "Dinheiro";
+    private static final String DESCRICAO_PIX = "PIX";
+    private static final String FORMA_PAGAMENTO_VISTA = "00";
+    private static final String FORMA_PAGAMENTO_PARCELADO = "01/02/03";
+    private static final String FORMA_PAGAMENTO_ESPACOS = "00 01/02";
+    private static final String FORMA_PAGAMENTO_COMPLEXA = "00/01/02/03/04";
+    private static final String QUANTIDADE_ESPERADA = "3";
+    private static final int PARCELAS_VISTA = 1;
+    private static final int PARCELAS_TRES = 3;
+    private static final int PARCELAS_CINCO = 5;
+    private static final int TAMANHO_LISTA_ESPERADO = 3;
 
     @Mock
     private PagamentoTipoRespository pagamentoTipoRepository;
@@ -39,15 +57,25 @@ class PagamentoTipoServiceUnitTest {
     @BeforeEach
     void setUp() {
         pagamentoTipoMock = new PagamentoTipo();
-        pagamentoTipoMock.setCodigo(1L);
-        pagamentoTipoMock.setDescricao("Cartão de Crédito");
+        pagamentoTipoMock.setCodigo(CODIGO_PADRAO);
+        pagamentoTipoMock.setDescricao(DESCRICAO_CARTAO);
+    }
+
+    /**
+     * Método auxiliar para criar instâncias de PagamentoTipo
+     */
+    private PagamentoTipo criarPagamentoTipo(Long codigo, String descricao) {
+        PagamentoTipo tipo = new PagamentoTipo();
+        tipo.setCodigo(codigo);
+        tipo.setDescricao(descricao);
+        return tipo;
     }
 
     @Test
     @DisplayName("ESTRUTURAL: Deve cadastrar pagamento com forma única (à vista)")
     void deveCadastrarPagamentoFormaUnica() {
         // Arrange
-        pagamentoTipoMock.setFormaPagamento("00");
+        pagamentoTipoMock.setFormaPagamento(FORMA_PAGAMENTO_VISTA);
         
         // Act
         pagamentoTipoService.cadastrar(pagamentoTipoMock);
@@ -56,21 +84,21 @@ class PagamentoTipoServiceUnitTest {
         verify(pagamentoTipoRepository, times(1)).save(pagamentoTipoMock);
         assertNotNull(pagamentoTipoMock.getData_cadastro(), "Data de cadastro deve ser definida");
         assertEquals(Date.valueOf(LocalDate.now()), pagamentoTipoMock.getData_cadastro());
-        assertEquals(1, pagamentoTipoMock.getQtd_parcelas(), "Deve ter 1 parcela para pagamento à vista");
+        assertEquals(PARCELAS_VISTA, pagamentoTipoMock.getQtd_parcelas(), "Deve ter 1 parcela para pagamento à vista");
     }
 
     @Test
     @DisplayName("ESTRUTURAL: Deve cadastrar pagamento com múltiplas formas (parcelado)")
     void deveCadastrarPagamentoMultiplasFormas() {
         // Arrange - Forma de pagamento parcelado em 3x
-        pagamentoTipoMock.setFormaPagamento("01/02/03");
+        pagamentoTipoMock.setFormaPagamento(FORMA_PAGAMENTO_PARCELADO);
         
         // Act
         pagamentoTipoService.cadastrar(pagamentoTipoMock);
         
         // Assert
         verify(pagamentoTipoRepository, times(1)).save(pagamentoTipoMock);
-        assertEquals(3, pagamentoTipoMock.getQtd_parcelas(), "Deve ter 3 parcelas para pagamento 01/02/03");
+        assertEquals(PARCELAS_TRES, pagamentoTipoMock.getQtd_parcelas(), "Deve ter 3 parcelas para pagamento 01/02/03");
         assertNotNull(pagamentoTipoMock.getData_cadastro());
     }
 
@@ -78,7 +106,7 @@ class PagamentoTipoServiceUnitTest {
     @DisplayName("ESTRUTURAL: Deve processar forma de pagamento com espaços")
     void deveProcessarFormaPagamentoComEspacos() {
         // Arrange - Forma com espaços misturados
-        pagamentoTipoMock.setFormaPagamento("00 01/02");
+        pagamentoTipoMock.setFormaPagamento(FORMA_PAGAMENTO_ESPACOS);
         
         // Act
         pagamentoTipoService.cadastrar(pagamentoTipoMock);
@@ -86,7 +114,7 @@ class PagamentoTipoServiceUnitTest {
         // Assert
         verify(pagamentoTipoRepository, times(1)).save(pagamentoTipoMock);
         // O split deve processar corretamente: "00 01 02" = 3 elementos
-        assertEquals(3, pagamentoTipoMock.getQtd_parcelas(), "Deve processar corretamente espaços e barras");
+        assertEquals(PARCELAS_TRES, pagamentoTipoMock.getQtd_parcelas(), "Deve processar corretamente espaços e barras");
     }
 
     @Test
@@ -95,8 +123,8 @@ class PagamentoTipoServiceUnitTest {
         // Arrange
         List<PagamentoTipo> listaMock = Arrays.asList(
             pagamentoTipoMock,
-            new PagamentoTipo("Dinheiro", null),
-            new PagamentoTipo("PIX", null)
+            criarPagamentoTipo(CODIGO_DINHEIRO, DESCRICAO_DINHEIRO),
+            criarPagamentoTipo(CODIGO_PIX, DESCRICAO_PIX)
         );
         when(pagamentoTipoRepository.findAll()).thenReturn(listaMock);
         
@@ -106,42 +134,39 @@ class PagamentoTipoServiceUnitTest {
         // Assert
         verify(pagamentoTipoRepository, times(1)).findAll();
         assertNotNull(resultado, "Lista não deve ser nula");
-        assertEquals(3, resultado.size(), "Deve retornar 3 tipos de pagamento");
-        assertEquals("Cartão de Crédito", resultado.get(0).getDescricao());
+        assertEquals(TAMANHO_LISTA_ESPERADO, resultado.size(), "Deve retornar 3 tipos de pagamento");
+        assertEquals(DESCRICAO_CARTAO, resultado.get(0).getDescricao());
     }
 
     @Test
     @DisplayName("ESTRUTURAL: Deve buscar tipo por código")
     void deveBuscarTipoPorCodigo() {
         // Arrange
-        Long codigo = 1L;
-        when(pagamentoTipoRepository.findByCodigoIn(codigo)).thenReturn(pagamentoTipoMock);
+        when(pagamentoTipoRepository.findByCodigoIn(CODIGO_PADRAO)).thenReturn(pagamentoTipoMock);
         
         // Act
-        PagamentoTipo resultado = pagamentoTipoService.busca(codigo);
+        PagamentoTipo resultado = pagamentoTipoService.busca(CODIGO_PADRAO);
         
         // Assert
-        verify(pagamentoTipoRepository, times(1)).findByCodigoIn(codigo);
+        verify(pagamentoTipoRepository, times(1)).findByCodigoIn(CODIGO_PADRAO);
         assertNotNull(resultado, "Resultado não deve ser nulo");
         assertEquals(pagamentoTipoMock.getCodigo(), resultado.getCodigo());
-        assertEquals("Cartão de Crédito", resultado.getDescricao());
+        assertEquals(DESCRICAO_CARTAO, resultado.getDescricao());
     }
 
     @Test
     @DisplayName("ESTRUTURAL: Deve retornar quantidade de parcelas como string")
     void deveRetornarQuantidadeParcelasComoString() {
         // Arrange
-        Long codigo = 1L;
-        String quantidadeEsperada = "3";
-        when(pagamentoTipoRepository.quantidadeParcelar(codigo)).thenReturn(quantidadeEsperada);
+        when(pagamentoTipoRepository.quantidadeParcelar(CODIGO_PADRAO)).thenReturn(QUANTIDADE_ESPERADA);
         
         // Act
-        String resultado = pagamentoTipoService.qtdParcelas(codigo);
+        String resultado = pagamentoTipoService.qtdParcelas(CODIGO_PADRAO);
         
         // Assert
-        verify(pagamentoTipoRepository, times(1)).quantidadeParcelar(codigo);
+        verify(pagamentoTipoRepository, times(1)).quantidadeParcelar(CODIGO_PADRAO);
         assertNotNull(resultado, "Resultado não deve ser nulo");
-        assertEquals(quantidadeEsperada, resultado, "Deve retornar a quantidade como string");
+        assertEquals(QUANTIDADE_ESPERADA, resultado, "Deve retornar a quantidade como string");
     }
 
     @Test
@@ -155,35 +180,34 @@ class PagamentoTipoServiceUnitTest {
         
         // Assert
         verify(pagamentoTipoRepository, times(1)).save(pagamentoTipoMock);
-        assertEquals(1, pagamentoTipoMock.getQtd_parcelas(), "Forma vazia deve resultar em 1 parcela");
+        assertEquals(PARCELAS_VISTA, pagamentoTipoMock.getQtd_parcelas(), "Forma vazia deve resultar em 1 parcela");
     }
 
     @Test
     @DisplayName("ESTRUTURAL: Deve processar forma complexa com múltiplas barras")
     void deveProcessarFormaComplexaMultiplasBarras() {
         // Arrange - Forma complexa: à vista + 2x parcelado + 3x parcelado
-        pagamentoTipoMock.setFormaPagamento("00/01/02/03/04");
+        pagamentoTipoMock.setFormaPagamento(FORMA_PAGAMENTO_COMPLEXA);
         
         // Act
         pagamentoTipoService.cadastrar(pagamentoTipoMock);
         
         // Assert
         verify(pagamentoTipoRepository, times(1)).save(pagamentoTipoMock);
-        assertEquals(5, pagamentoTipoMock.getQtd_parcelas(), "Deve processar corretamente 5 formas de pagamento");
+        assertEquals(PARCELAS_CINCO, pagamentoTipoMock.getQtd_parcelas(), "Deve processar corretamente 5 formas de pagamento");
     }
 
     @Test
     @DisplayName("ESTRUTURAL: Deve manter integridade ao buscar código inexistente")
     void deveManterIntegridadeAoBuscarCodigoInexistente() {
         // Arrange
-        Long codigoInexistente = 999L;
-        when(pagamentoTipoRepository.findByCodigoIn(codigoInexistente)).thenReturn(null);
+        when(pagamentoTipoRepository.findByCodigoIn(CODIGO_INEXISTENTE)).thenReturn(null);
         
         // Act
-        PagamentoTipo resultado = pagamentoTipoService.busca(codigoInexistente);
+        PagamentoTipo resultado = pagamentoTipoService.busca(CODIGO_INEXISTENTE);
         
         // Assert
-        verify(pagamentoTipoRepository, times(1)).findByCodigoIn(codigoInexistente);
+        verify(pagamentoTipoRepository, times(1)).findByCodigoIn(CODIGO_INEXISTENTE);
         assertNull(resultado, "Deve retornar null para código inexistente");
     }
 
@@ -191,14 +215,13 @@ class PagamentoTipoServiceUnitTest {
     @DisplayName("ESTRUTURAL: Deve manter integridade ao buscar quantidade de código inexistente")
     void deveManterIntegridadeAoBuscarQuantidadeCodigoInexistente() {
         // Arrange
-        Long codigoInexistente = 999L;
-        when(pagamentoTipoRepository.quantidadeParcelar(codigoInexistente)).thenReturn(null);
+        when(pagamentoTipoRepository.quantidadeParcelar(CODIGO_INEXISTENTE)).thenReturn(null);
         
         // Act
-        String resultado = pagamentoTipoService.qtdParcelas(codigoInexistente);
+        String resultado = pagamentoTipoService.qtdParcelas(CODIGO_INEXISTENTE);
         
         // Assert
-        verify(pagamentoTipoRepository, times(1)).quantidadeParcelar(codigoInexistente);
+        verify(pagamentoTipoRepository, times(1)).quantidadeParcelar(CODIGO_INEXISTENTE);
         assertNull(resultado, "Deve retornar null para código inexistente");
     }
 }
