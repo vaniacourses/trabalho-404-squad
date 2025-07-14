@@ -10,10 +10,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.*; // Importa MockitoAnnotations
+import org.mockito.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -21,17 +24,33 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+/**
+ * Testes unit√°rios para CaixaService
+ * Valida opera√ß√µes de abertura, fechamento e gest√£o de caixa
+ */
+class CaixaServiceTest {
 
-import java.lang.reflect.Array;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-public class CaixaServiceTest {
+    // Constantes para testes
+    private static final Double VALOR_ABERTURA_INVALIDO = -100.0;
+    private static final Double VALOR_ABERTURA_VALIDO = 100.0;
+    private static final Double VALOR_CAIXA_1 = 200.0;
+    private static final Double VALOR_CAIXA_2 = 150.0;
+    private static final Long CAIXA_ID = 1L;
+    private static final String SENHA_INCORRETA = "123";
+    private static final String SENHA_CORRETA = "SenhaCorreta";
+    private static final String SENHA_CORRETA_HASH = "senhaCorretaHash";
+    private static final String DESCRICAO_CAIXA_DIARIO = "Caixa di√°rio";
+    private static final String DESCRICAO_CAIXA_1 = "Caixa 1";
+    private static final String DESCRICAO_CAIXA_2 = "Caixa 2";
+    private static final String USUARIO_TESTE = "teste";
+    private static final String SENHA_HASH = "hashedPassword";
+    
+    // Mensagens de erro e sucesso
+    private static final String MSG_CAIXA_ABERTO_ANTERIOR = "Existe caixa de dias anteriores em aberto, favor verifique";
+    private static final String MSG_VALOR_INVALIDO = "Valor Informado √© inv√°lido";
+    private static final String MSG_SENHA_INCORRETA = "Senha incorreta";
+    private static final String MSG_CAIXA_FECHADO_SUCESSO = "Caixa fechado com sucesso";
+    private static final String MSG_CAIXA_JA_FECHADO = "Caixa j√° esta fechado";
 
     @InjectMocks
     private CaixaService caixaService;
@@ -53,152 +72,144 @@ public class CaixaServiceTest {
 
     private Usuario usuarioLogado;
 
-    // Vari·vel para controlar o mock est·tico
-    private MockedStatic <Aplicacao> aplicacaoMockedStatic;
+    // Vari√°vel para controlar o mock est√°tico
+    private MockedStatic<Aplicacao> aplicacaoMockedStatic;
 
     @BeforeEach
     void setUp() {
         // Inicializa todos os campos anotados com @Mock e @InjectMocks nesta classe.
-        // openMocks() È o sucessor moderno do deprecated initMocks().
+        // openMocks() √© o sucessor moderno do deprecated initMocks().
         MockitoAnnotations.openMocks(this);
 
         usuarioLogado = new Usuario();
-        usuarioLogado.setUser("teste");
-        usuarioLogado.setSenha("hashedPassword");
+        usuarioLogado.setUser(USUARIO_TESTE);
+        usuarioLogado.setSenha(SENHA_HASH);
 
-        // O mock est·tico precisa ser criado apÛs a inicializaÁ„o dos mocks
-        aplicacaoMockedStatic = (MockedStatic<Aplicacao>) mockStatic(Aplicacao.class);
+        // O mock est√°tico precisa ser criado ap√≥s a inicializa√ß√£o dos mocks
+        aplicacaoMockedStatic = mockStatic(Aplicacao.class);
         when(Aplicacao.getInstancia()).thenReturn(aplicacaoMock);
-        when(aplicacaoMock.getUsuarioAtual()).thenReturn("teste");
+        when(aplicacaoMock.getUsuarioAtual()).thenReturn(USUARIO_TESTE);
         when(usuarioService.buscaUsuario(anyString())).thenReturn(usuarioLogado);
     }
 
-    // --- MUDAN«A: Adicionado @AfterEach para limpar o mock est·tico ---
     @AfterEach
     void tearDown() {
         if (aplicacaoMockedStatic != null) {
             aplicacaoMockedStatic.close();
         }
     }
-    //testando o metodo abrir caixa
     @Test
-    @DisplayName("Teste do Caixa j· aberto")
-    void testAbrirCaixa() {
-        // CriaÁ„o de um novo caixa
+    @DisplayName("Teste do Caixa j√° aberto")
+    void deveValidarCaixaJaAberto() {
+        // Cria√ß√£o de um novo caixa
         Caixa caixa = new Caixa();
         caixa.setTipo(CaixaTipo.CAIXA);
 
         // Mock para simular um caixa em aberto
         when(caixaRepository.caixaAberto()).thenReturn(Optional.of(new Caixa()));
 
-        // Verifica se a exceÁ„o correta È lanÁada
+        // Verifica se a exce√ß√£o correta √© lan√ßada
         Exception exception = assertThrows(RuntimeException.class, () -> caixaService.cadastro(caixa));
-        assertEquals("Existe caixa de dias anteriores em aberto, favor verifique", exception.getMessage());
-
+        assertEquals(MSG_CAIXA_ABERTO_ANTERIOR, exception.getMessage());
     }
+
     @Test
-    @DisplayName("Teste de Valor Invalido")
-    void AberturaValorInvalido() {
+    @DisplayName("Teste de Valor Inv√°lido")
+    void deveValidarAberturaComValorInvalido() {
         // caixa com valor de abertura negativo
         Caixa caixa = new Caixa();
         caixa.setTipo(CaixaTipo.CAIXA);
-        caixa.setValor_abertura(-100.0);
+        caixa.setValor_abertura(VALOR_ABERTURA_INVALIDO);
 
-        // Verifica quando o valor de abertura È inv·lido
+        // Verifica quando o valor de abertura √© inv√°lido
         Exception exception = assertThrows(RuntimeException.class, () -> caixaService.cadastro(caixa));
-        assertEquals(exception.getMessage(),"Valor Informado È inv·lido");
+        assertEquals(MSG_VALOR_INVALIDO, exception.getMessage());
     }
 
     @Test
-    @DisplayName("Teste de valor valido")
-    void AberturaValorValido(){
-        // caixa com valor de abertura v·lido
+    @DisplayName("Teste de valor v√°lido")
+    void deveAbrirCaixaComValorValido(){
+        // caixa com valor de abertura v√°lido
         Caixa caixa = new Caixa();
         caixa.setTipo(CaixaTipo.CAIXA);
-        caixa.setValor_abertura(100.0);
+        caixa.setValor_abertura(VALOR_ABERTURA_VALIDO);
         caixa.setDescricao("");
 
         Usuario usuario = new Usuario();
         when(usuarioService.buscaUsuario(anyString())).thenReturn(usuario);
-
         when(caixaRepository.save(any(Caixa.class))).thenReturn(caixa);
 
         Long codigoCaixa = caixaService.cadastro(caixa);
 
         assertEquals(caixa.getCodigo(), codigoCaixa);
-        assertEquals("Caixa di·rio", caixa.getDescricao());
+        assertEquals(DESCRICAO_CAIXA_DIARIO, caixa.getDescricao());
         assertEquals(usuario, caixa.getUsuario());
     }
+
     @Test
     @DisplayName("Teste de Fechar o caixa")
-    void FecharCaixa(){
-        Long caixa = 1L;
-        String senhaErro = "123";
-
-
+    void deveFecharCaixa(){
         Usuario usuario = new Usuario();
-        usuario.setSenha("SenhaCorreta");
+        usuario.setSenha(SENHA_CORRETA);
 
         when(usuarioService.buscaUsuario(anyString())).thenReturn(usuario);
 
-        String resultado = caixaService.fechaCaixa(caixa, senhaErro);
+        String resultado = caixaService.fechaCaixa(CAIXA_ID, SENHA_INCORRETA);
+        assertEquals(MSG_SENHA_INCORRETA, resultado);
 
-        assertEquals("Senha incorreta", resultado);
-
-        resultado = caixaService.fechaCaixa(caixa, "SenhaCorreta");
-
-        assertEquals("Caixa fechado com sucesso", resultado);
+        resultado = caixaService.fechaCaixa(CAIXA_ID, SENHA_CORRETA);
+        assertEquals(MSG_CAIXA_FECHADO_SUCESSO, resultado);
     }
     @Test
-    @DisplayName("Teste de Fehcar Caixa J· Fechado")
-    void TestFechaCaixaJaFechado() {
-        Long caixaId = 1L;
-        String senhaCorreta = "senhaCorreta";
-
+    @DisplayName("Teste de Fechar Caixa J√° Fechado")
+    void deveValidarFechamentoCaixaJaFechado() {
         Usuario usuario = new Usuario();
-        usuario.setSenha("senhaCorretaHash");
+        usuario.setSenha(SENHA_CORRETA_HASH);
         when(usuarioService.buscaUsuario(anyString())).thenReturn(usuario);
 
         BCryptPasswordEncoder passwordEncoder = mock(BCryptPasswordEncoder.class);
-        when(passwordEncoder.matches(senhaCorreta, usuario.getSenha())).thenReturn(true);
+        when(passwordEncoder.matches(SENHA_CORRETA, usuario.getSenha())).thenReturn(true);
 
         Caixa caixa = new Caixa();
         java.sql.Timestamp dataHora = new java.sql.Timestamp(System.currentTimeMillis());
         caixa.setData_fechamento(dataHora);
-        when(caixaRepository.findById(caixaId)).thenReturn(Optional.of(caixa));
+        when(caixaRepository.findById(CAIXA_ID)).thenReturn(Optional.of(caixa));
 
-        Exception exception = assertThrows(RuntimeException.class, () -> caixaService.fechaCaixa(caixaId, senhaCorreta));
-        assertEquals("Caixa j· esta fechado", exception.getMessage());
+        Exception exception = assertThrows(RuntimeException.class, () -> caixaService.fechaCaixa(CAIXA_ID, SENHA_CORRETA));
+        assertEquals(MSG_CAIXA_JA_FECHADO, exception.getMessage());
     }
+
     @Test
-    void TesteCaixaAberto() {
+    @DisplayName("Teste de Caixa Aberto")
+    void deveVerificarCaixaAberto() {
         when(caixaRepository.caixaAberto()).thenReturn(Optional.of(new Caixa()));
 
         boolean resultado = caixaService.caixaIsAberto();
 
         assertTrue(resultado);
     }
+
     @Test
-    @DisplayName("Teste do metodo listaTodos()")
-    void testListaTodosCaixas() {
-        // Simulando os valores a serem retornados pelo repositÛrio
+    @DisplayName("Teste do m√©todo listaTodos()")
+    void deveListarTodosCaixas() {
+        // Simulando os valores a serem retornados pelo reposit√≥rio
         List<Caixa> caixasEsperados = Collections.unmodifiableList(Arrays.asList(
-                new Caixa("Caixa 1", CaixaTipo.CAIXA, 100.0, 200.0, null, null, null, null) ,
-                new Caixa("Caixa 2", CaixaTipo.COFRE, 50.0, 150.0, null, null, null, null)
+                new Caixa(DESCRICAO_CAIXA_1, CaixaTipo.CAIXA, VALOR_ABERTURA_VALIDO, VALOR_CAIXA_1, null, null, null, null),
+                new Caixa(DESCRICAO_CAIXA_2, CaixaTipo.COFRE, VALOR_ABERTURA_VALIDO, VALOR_CAIXA_2, null, null, null, null)
         ));
 
         when(caixaRepository.findByCodigoOrdenado()).thenReturn(caixasEsperados);
 
-        // Chamada do mÈtodo a ser testado
+        // Chamada do m√©todo a ser testado
         List<Caixa> resultado = caixaService.listaTodos();
 
-        // Verificando se a lista retornada È igual a esperada
+        // Verificando se a lista retornada √© igual a esperada
         assertEquals(caixasEsperados, resultado);
         assertEquals(2, resultado.size());
-        assertEquals("Caixa 1", resultado.get(0).getDescricao());
-        assertEquals("Caixa 2", resultado.get(1).getDescricao());
+        assertEquals(DESCRICAO_CAIXA_1, resultado.get(0).getDescricao());
+        assertEquals(DESCRICAO_CAIXA_2, resultado.get(1).getDescricao());
 
-        // Verificando se a interaÁ„o com o mock ocorreu como esperado
+        // Verificando se a intera√ß√£o com o mock ocorreu como esperado
         verify(caixaRepository, times(1)).findByCodigoOrdenado();
     }
 }
