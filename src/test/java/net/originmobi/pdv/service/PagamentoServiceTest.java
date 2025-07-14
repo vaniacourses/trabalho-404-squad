@@ -1,7 +1,6 @@
 package net.originmobi.pdv.service;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import java.sql.Date;
@@ -12,13 +11,11 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
 import net.originmobi.pdv.model.PagamentoTipo;
 import net.originmobi.pdv.repository.PagamentoTipoRespository;
-import net.originmobi.pdv.service.PagamentoTipoService;
 
 /**
  * Teste estrutural/unitário para PagamentoTipoService
