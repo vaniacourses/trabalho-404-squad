@@ -1,4 +1,4 @@
-package net.originmobi.pdv.unit;
+package net.originmobi.pdv.service;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import net.originmobi.pdv.model.PagamentoTipo;
 import net.originmobi.pdv.repository.PagamentoTipoRespository;
@@ -25,7 +24,7 @@ import net.originmobi.pdv.service.PagamentoTipoService;
  * Teste estrutural/unitário para PagamentoTipoService
  * Testa a lógica interna dos métodos isoladamente usando mocks
  */
-@ExtendWith(MockitoExtension.class)
+//@ExtendWith(MockitoExtension.class)
 @DisplayName("Teste Estrutural - PagamentoTipoService")
 class PagamentoTipoServiceUnitTest {
 
