@@ -59,6 +59,7 @@ class PagamentoServiceTest {
         pagamentoTipoMock = new PagamentoTipo();
         pagamentoTipoMock.setCodigo(CODIGO_PADRAO);
         pagamentoTipoMock.setDescricao(DESCRICAO_CARTAO);
+        pagamentoTipoMock.setFormaPagamento(FORMA_PAGAMENTO_VISTA); // Inicializa com valor padrão
     }
 
     /**

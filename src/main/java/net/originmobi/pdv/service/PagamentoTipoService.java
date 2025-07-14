@@ -21,7 +21,13 @@ public class PagamentoTipoService {
 	public void cadastrar(PagamentoTipo tipo) {
 		tipo.setData_cadastro(Date.valueOf(dataAtual));
 		
-		String[] quantidade = tipo.getFormaPagamento().replaceAll("/", " ").split(" ");
+		// Proteção contra null e string vazia
+		String formaPagamento = tipo.getFormaPagamento();
+		if (formaPagamento == null || formaPagamento.trim().isEmpty()) {
+			formaPagamento = "00"; // Default para à vista
+		}
+		
+		String[] quantidade = formaPagamento.replaceAll("/", " ").split(" ");
 		
 		tipo.setQtd_parcelas(quantidade.length);
 
