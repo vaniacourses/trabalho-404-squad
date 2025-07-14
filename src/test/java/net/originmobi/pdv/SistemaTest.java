@@ -2,8 +2,6 @@ package net.originmobi.pdv;
 
 import org.junit.jupiter.api.*;
 import org.openqa.selenium.By;
-import org.testng.Assert;
-import org.testng.annotations.Test;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -11,7 +9,8 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
-import static org.testng.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import   static  org.junit.jupiter.api.Assertions.assertEquals;
 
 public class SistemaTest extends BaseSystemTest {
 
@@ -50,7 +49,7 @@ public class SistemaTest extends BaseSystemTest {
         wait.until(ExpectedConditions.urlToBe(APP_BASE_URL + "/"));
 
         // Valida se o login foi bem-sucedido verificando a URL e o conteúdo da página
-        Assert.assertEquals("Deveria ser redirecionado para a página inicial", APP_BASE_URL + "/", driver.getCurrentUrl());
+        Assertions.assertEquals("Deveria ser redirecionado para a página inicial", APP_BASE_URL + "/", driver.getCurrentUrl());
         assertTrue(driver.getPageSource().contains("Pedidos em Aberto"),
                 "A página inicial deve conter o painel 'Pedidos em Aberto'");
     }
